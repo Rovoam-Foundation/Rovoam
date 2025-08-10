@@ -15,6 +15,7 @@
         (python.withPackages(pypkgs: with pypkgs; [
           rich
 	  openai
+	  prompt_toolkit
         ]))
       ];
     };

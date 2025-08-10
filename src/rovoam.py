@@ -20,55 +20,55 @@ def GetReActPrompt(tools: list=None):
         tools_docs = "(No tools available.)"
 
     return f"""
-    You run in a loop of Thought, Action, PAUSE, Observation.
-    At the end of the loop you output an Answer. 
-    Use Thought to describle your thoughts about the question you have been asked.
-    Use Action (if needed) to run one of the tools available to you. (Don't use Markdown in Action)
-    When calling actions, use the JSON format.
-    Observation will be the result of running those tools.
-    
-    VERY IMPORTANT:
-    - Only use the Action step if you REALLY need to use a tool to answer the question.
-    - If you do NOT need to use any tool, DO NOT output an Action step at all. Go directly to Answer.
-    - NEVER output fake or empty Action steps like "Action: no need", "Action: none", or similar. This BREAKS the workflow and is forbidden!
-    - Action must be a valid tool invocation in correct JSON format. Do not invent or summarize tool usage.
-    - If you make an Action, always follow it by PAUSE, and wait for Observation.
-    - Until you give an Answer in the correct format the loop will continue.
+You run in a loop of Thought, Action, PAUSE, Observation.
+At the end of the loop you output an Answer. 
+Use Thought to describle your thoughts about the question you have been asked.
+Use Action (if needed) to run one of the tools available to you. (Don't use Markdown in Action)
+When calling actions, use the JSON format.
+Observation will be the result of running those tools.
 
-    Available tools:
+VERY IMPORTANT:
+- Only use the Action step if you REALLY need to use a tool to answer the question.
+- If you do NOT need to use any tool, DO NOT output an Action step at all. Go directly to Answer.
+- NEVER output fake or empty Action steps like "Action: no need", "Action: none", or similar. This BREAKS the workflow and is forbidden!
+- Action must be a valid tool invocation in correct JSON format. Do not invent or summarize tool usage.
+- If you make an Action, always follow it by PAUSE, and wait for Observation.
+- Until you give an Answer in the correct format the loop will continue.
 
-    {tools_docs}
-    
-    Example session:
-    
-    Question: How much would 200 rubles be in dollars?
-    
-    Thought: I need to use a currency converter
-    Action: {{
-        "tool": "currencyConverter",
-        "inCurrency": "RUB",
-        "value": 200,
-        "outCurrency": "USD"
-    }}
-    PAUSE
-    (end of your message)
+Available tools:
 
-    (you will be called again)
+{tools_docs}
 
-    (System) Observation: 2,42
+Example session:
 
-    (Output the final answer)
-    Answer: 200 rubles is 2.42 dollars.
+Question: How much would 200 rubles be in dollars?
 
-    INCORRECT USAGE EXAMPLES (do NOT do this!):
-    Thought: Можно ответить без инструментов
-    Action: нет необходимости
-    PAUSE
+Thought: I need to use a currency converter
+Action: {{
+    "tool": "currencyConverter",
+    "inCurrency": "RUB",
+    "value": 200,
+    "outCurrency": "USD"
+}}
+PAUSE
+(end of your message)
 
-    CORRECT: Just write an Answer block if no tool is needed.
+(you will be called again)
 
-    Now it's your turn:
-    """
+(System) Observation: 2,42
+
+(Output the final answer)
+Answer: 200 rubles is 2.42 dollars.
+
+INCORRECT USAGE EXAMPLES (do NOT do this!):
+Thought: Можно ответить без инструментов
+Action: нет необходимости
+PAUSE
+
+CORRECT: Just write an "Answer:" block if no tool is needed.
+
+Now it's your turn:
+"""
 
 def GetClassifierPrompt(categories: list):
     return f"""
@@ -77,12 +77,41 @@ def GetClassifierPrompt(categories: list):
     VERY IMPORTANT:
     - Never say anything other than the name of the category.
     - Don't reply with categories that don't exist.
+    - If you can't put it in a specific category, answer "None"
 
     Categories:
     {categories}
     """
 
-class Agent():
+class Multimodal():
+    def image(self, url: str):
+        self.messages.append(
+            {
+                "role": "user",
+                "content": [{
+                    "type": "image_url",
+                    "image_url": {
+                        "url": url
+                    }
+                }]
+            }
+        )
+    
+    def audio(self, b64: str, format: str):
+        self.messages.append(
+            {
+                "role": "user",
+                "content": [{
+                    "type": "input_audio",
+                    "input_audio": {
+                        "data": b64, 
+                        "format": format
+                    }
+                }]
+            }
+        )
+
+class Agent(Multimodal):
     def __init__(
         self,
         client: object,
@@ -110,7 +139,6 @@ class Agent():
         self.tools = tools
         self.verbose = verbose
         self.maxIterations = maxIterations
-        self.last_trace = None  # Store the last trace from the most recent call to exec
         self.confirmation_handler = confirmation_handler
         # Recursively set confirmation_handler for all Agent tools
         def set_handler_recursively(tool):
@@ -127,7 +155,7 @@ class Agent():
                 set_handler_recursively(tool)
         self.reset()
 
-    def __call__(self, message: str=None, role: str="user", call: bool=True, return_trace: bool=None):
+    def __call__(self, message: str|None=None, role: str="user", call: bool=True, return_trace: bool|None=None):
         if self.reset_messages:
             self.reset()
         if message is not None:
@@ -209,7 +237,7 @@ class Agent():
                             raise RuntimeError("No confirmation_handler set for Agent, cannot execute tools")
                         confirmed = self.confirmation_handler(toolname, json.dumps(action, ensure_ascii=False))
                         if not confirmed:
-                            obs = f"Action '{reason}' cancelled by confirmation handler."
+                            obs = f"Action '{toolname}' not confirmed by user."
                         else:
                             tool = tool_map[toolname]
                             obs = tool(**action)
@@ -249,21 +277,8 @@ class Agent():
                         return content
             # Fallback: return last LLM content
             return self.messages[-1]["content"]
-        
-    def image(self, url: str):
-        self.messages.append(
-            {
-                "role": "user",
-                "content": [{
-                    "type": "image_url",
-                    "image_url": {
-                        "url": url
-                    }
-                }]
-            }
-        )
 
-class Chat():
+class Chat(Multimodal):
     def __init__(
         self, 
         client: object, 
@@ -301,19 +316,6 @@ class Chat():
                 messages=self.messages
         )
         return response.choices[0].message.content
-        
-    def image(self, url: str):
-        self.messages.append(
-            {
-                "role": "user",
-                "content": [{
-                    "type": "image_url",
-                    "image_url": {
-                        "url": url
-                    }
-                }]
-            }
-        )
 
 class Classifier():
     def __init__(
@@ -334,11 +336,12 @@ class Classifier():
             self.messages.append({"role": role, "content": message})
         if call == True:
             result = self.exec()
+            if result == "None":
+                return None
             return result
 
     def reset(self):
-        self.messages = []
-
+        self.messages = [{"role": "system", "content": GetClassifierPrompt(self.categories)}]
 
     def exec(self):
         response = self.client.chat.completions.create(
@@ -346,19 +349,7 @@ class Classifier():
                 messages=self.messages
         )
         return response.choices[0].message.content
-        
-    def image(self, url: str):
-        self.messages.append(
-            {
-                "role": "user",
-                "content": [{
-                    "type": "image_url",
-                    "image_url": {
-                        "url": url
-                    }
-                }]
-            }
-        )
+    
 
 def visualize_agent(agent, max_depth=3):
     """
