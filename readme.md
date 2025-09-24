@@ -1,37 +1,37 @@
 # Rovoam
 
-**Языки**: [Английский]{readme.md} | Русский
+**Languages**: English | [Russian](readme.ru.md)
 
-Rovoam — это простой агент ИИ на Python.
+Rovoam is a simple Python AI agent.
 
-## Как использовать
+## How to use
 
-- Запустите src/main.py
-- Введите любое сообщение и нажмите Shift+Tab для отправки.
-- /help — справка по командам
+- Run src/main.py
+- Type any message then hit Shift+Tab to send.
+- /help for commands help
 
-## Как использовать rovoam.py в вашем проекте
+## How to use rovoam.py in your project
 
-Импортируйте необходимые классы из rovoam
+Import the required classes from rovoam
 
-- Agent: агент ReAct
-- Chat: простой чат
-- Classifier: принимает строку и возвращает категорию или None, если не может ответить
+- Agent: ReAct agent
+- Chat: simple chat
+- Classifier: takes a string and returns a category, or None if it cannot answer
 
-## Создание инструментов
+## Creating tools
 
-Любая функция с документационной строкой (docstring) может быть инструментом.
+Any function with docstring can be a tool.
 
-Пример:
+Example:
 
 ```python
 def test_tool(number):
-    """
-    test_tool.
-    Умножает число на 2
-    Опции:
-    Number: ввод числа
-    """
+  """
+  test_tool.
+  Multiplies number by 2
+  Options:
+  Number: input number
+  """
 
-    return number * 2
+  return number*2
 ```
