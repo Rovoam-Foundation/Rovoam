@@ -14,8 +14,8 @@
       packages = with pkgs; [
         (python.withPackages(pypkgs: with pypkgs; [
           rich
-	  openai
-	  prompt_toolkit
+          openai
+          prompt_toolkit
         ]))
       ];
     };
