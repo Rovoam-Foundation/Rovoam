@@ -1,19 +1,37 @@
 # Rovoam
 
-**Languages**: [English](readme.md) | Russian
+**Языки**: [Английский]{readme.md} | Русский
 
-Rovoam is a simple Python module for quickly creating ReAct agents and multi-agent networks.
+Rovoam — это простой агент ИИ на Python.
 
-Also, you get a simple example of a network and interface along with it.
+## Как использовать
 
-> Quick tip: use the free OpenAI-compatible API `https://text.pollination.ai/openai`, no API key is needed (you can put anything), no restrictions.
+- Запустите src/main.py
+- Введите любое сообщение и нажмите Shift+Tab для отправки.
+- /help — справка по командам
 
-## How to use
+## Как использовать rovoam.py в вашем проекте
 
-Import the required classes from rovoam
+Импортируйте необходимые классы из rovoam
 
-`from rovoam import X`
+- Agent: агент ReAct
+- Chat: простой чат
+- Classifier: принимает строку и возвращает категорию или None, если не может ответить
 
-- Agent: ReAct agent
-- Chat: simple chat
-- Classifier: takes a string and returns a category, or None if it cannot answer
+## Создание инструментов
+
+Любая функция с документационной строкой (docstring) может быть инструментом.
+
+Пример:
+
+```python
+def test_tool(number):
+    """
+    test_tool.
+    Умножает число на 2
+    Опции:
+    Number: ввод числа
+    """
+
+    return number * 2
+```
